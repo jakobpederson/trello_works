@@ -8,7 +8,7 @@ class BoardBuilder():
         self.source = source
         self.open_lists = source.open_lists()
 
-    def build_boards(self, organization_id=None):
+    def build_boards_from_lists(self, organization_id=None):
         permission_level = 'org' if organization_id else None
         new_boards = [
             self.client.add_board(
