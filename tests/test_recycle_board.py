@@ -1,6 +1,7 @@
 import logging
 import logging.config
 from trello import TrelloClient
+from random import randint
 from unittest import TestCase
 
 from scripts.recycle_board import RecycleBoard
@@ -13,15 +14,21 @@ class RecycleBoardTests(TestCase):
     def setUpClass(cls):
         logging.config.dictConfig({"version": 1, "loggers": {"requests": {"level": "INFO"}}})
 
-    def test_x(self):
+    def setUp(self):
         self.client = TrelloClient(api_key=API_KEY, token=API_TOKEN)
-        recycler = RecycleBoard(API_KEY, API_TOKEN)
-        expected = len(self.client.list_boards(board_filter='closed')) - 1
-        print(expected)
-        self.fail('x')
+        self.org = self.client.get_organization('deletetheseboards')
+        for board in self.org.get_boards(list_filter='open'):
+            board.close()
+        recycler = RecycleBoard(API_KEY, API_TOKEN, org_id='deletetheseboards')
+        self.name = 'NEW BOARD {}'.format(randint(0, 1000))
+        self.recycled_board = recycler.recycle_board(self.name)
 
-        # expected = len(self.client.list_boards(board_filter='closed')) - 1
-        # recycler = RecycleBoard(API_KEY, API_TOKEN)
-        # recycler.recycle_board('test_board')
-        # result = len(self.client.list_boards(board_filter='closed'))
-        # self.assertEqual(expected, result)
+    def tearDown(self):
+        if self.recycled_board:
+            self.recycled_board.close()
+
+    def test_name_change(self):
+        self.assertEqual(self.recycled_board.name, self.name)
+
+    def test_cards_deleted(self):
+        self.assertCountEqual(self.recycled_board.open_cards(), [])

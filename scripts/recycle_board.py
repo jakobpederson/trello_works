@@ -3,17 +3,26 @@ from trello import TrelloClient
 
 class RecycleBoard():
 
-    def __init__(self, API_KEY, API_TOKEN):
+    def __init__(self, API_KEY, API_TOKEN, org_id=None):
         self.client = TrelloClient(api_key=API_KEY, token=API_TOKEN)
-        self.closed_boards = self.client.list_boards(board_filter='closed')
+        self.org = self.client.get_organization(org_id) if org_id else None
+        self.closed_board_gen = self.get_closed_board()
+        self.board = self.closed_board_gen.__next__()
 
     def recycle_board(self, name):
-        print('hi')
-        closed_board_gen = self.get_closed_board()
-        old_board = closed_board_gen.__next__()
-        print(old_board.name)
-        return
+        self.board.open()
+        self.delete_cards()
+        self.board.set_name(name)
+        return self.board
+
+    def delete_cards(self):
+        for card in self.board.open_cards():
+            card.delete()
 
     def get_closed_board(self):
-        for board in self.closed_boards:
+        get_boards = (self.org.get_boards, self.client.list_boards)
+        if self.org:
+            for board in get_boards[0](list_filter='closed'):
+                yield board
+        for board in get_boards[1](board_filter='closed'):
             yield board
